@@ -516,11 +516,11 @@ function Buffy.Assign()
 	Buffy.UiUpdate()
 end
 
-----------
--- Main --
-----------
-SLASH_BUFFY1 = "/buffy"
-SlashCmdList["BUFFY"] = function(msg)
+function Buffy:OnInitialize()
+	Buffy:RegisterChatCommand("buffy", "OnSlashCommand")
+end
+
+function Buffy:OnSlashCommand(msg)
 	local _, _, cmd, remainder = string.find(msg, "%s?(%w+)%s?(.*)")
 	local args = {}
 	for w in string.gmatch(remainder, "([^%s]+)") do
@@ -534,12 +534,12 @@ SlashCmdList["BUFFY"] = function(msg)
 			and (args[2] == "s" or args[2] == "p" or args[2] == "r") then
 			Buffy.Announce(args[1], args[2])
 		else
-			print("Usage: /buffy announce <class> <target>")
-			print("              <class>      druid | mage | priest")
-			print("              <target>     s = say, p = party, r = raid")
+			Buffy:Print("Usage: /buffy announce <class> <target>")
+			Buffy:Print("              <class>      druid | mage | priest")
+			Buffy:Print("              <target>     s = say, p = party, r = raid")
 		end
 	else
-		print("Invalid command")
+		Buffy:Print("Invalid command")
 	end
 end
 
