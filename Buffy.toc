@@ -2,13 +2,9 @@
 ## Title: Buffy
 ## Notes: Buff assignment helper
 ## Author: Namiest
+## Version: 0.1
 
-#embeds.xml
-
-Libs\LibStub\LibStub.lua
-Libs\CallbackHandler-1.0\CallbackHandler-1.0.lua
-Libs\LibTalentQuery-1.0\LibTalentQuery-1.0.lua
-Libs\LibGroupTalents-1.0\LibGroupTalents-1.0.lua
+embeds.xml
 
 # Core #
 Buffy.lua

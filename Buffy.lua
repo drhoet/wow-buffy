@@ -1,7 +1,8 @@
+Buffy = LibStub("AceAddon-3.0"):NewAddon("Buffy", "AceConsole-3.0")
+
 -----------------
 -- Addon state --
 -----------------
-local Buffy = {}
 Buffy.groupsRepository = { -- the groups we have + which buffs they require
 	items = {},
 	maxGroup = 0,
@@ -542,62 +543,64 @@ SlashCmdList["BUFFY"] = function(msg)
 	end
 end
 
-BUFFS.stamina = {
-	cost = 1,
-	name = "stamina",
-	displayName="Stamina",
-	icon = "Interface\\Icons\\Inv_misc_questionmark",
-	canBeCastBy = function(self, player)
-		return player.class == "Priest"
-	end,
-	isRequiredBy = function(self, player)
-		return true
-	end,
-	assignPrio = 0
-}
-_, _, BUFFS.stamina.icon, BUFFS.stamina.cost = GetSpellInfo(21564)
-
-BUFFS.spirit = {
-	cost = 1,
-	name = "spirit",
-	displayName="Spirit",
-	icon = "Interface\\Icons\\Inv_misc_questionmark",
-	canBeCastBy = function(self, player)
-		return player.class == "Priest" and LibGroupTalents:UnitHasTalent(player.name, "Divine Spirit")
-	end,
-	isRequiredBy = function(self, player)
-		return UnitPowerMax(player.name, 0) > 0
-	end,
-	assignPrio = 100
-}
-_, _, BUFFS.spirit.icon, BUFFS.spirit.cost = GetSpellInfo(27681)
-
-BUFFS.gotw = {
-	cost = 1,
-	name = "gotw",
-	displayName="GOTW",
-	icon = "Interface\\Icons\\Inv_misc_questionmark",
-	canBeCastBy = function(self, player)
-		return player.class == "Druid"
-	end,
-	isRequiredBy = function(self, player)
-		return true
-	end, 
-	assignPrio = 0
-}
-_, _, BUFFS.gotw.icon, BUFFS.gotw.cost = GetSpellInfo(21850)
-
-BUFFS.intellect = {
-	cost = 1,
-	name = "intellect",
-	displayName="Intellect",
-	icon = "Interface\\Icons\\Inv_misc_questionmark",
-	canBeCastBy = function(self, player)
-		return player.class == "Mage"
-	end,
-	isRequiredBy = function(self, player)
-		return UnitPowerMax(player.name, 0) > 0
-	end, 
-	assignPrio = 0
-}
-_, _, BUFFS.intellect.icon, BUFFS.intellect.cost = GetSpellInfo(23028)
+function Buffy:OnEnable()
+	BUFFS.stamina = {
+		cost = 1,
+		name = "stamina",
+		displayName="Stamina",
+		icon = "Interface\\Icons\\Inv_misc_questionmark",
+		canBeCastBy = function(self, player)
+			return player.class == "Priest"
+		end,
+		isRequiredBy = function(self, player)
+			return true
+		end,
+		assignPrio = 0
+	}
+	_, _, BUFFS.stamina.icon, BUFFS.stamina.cost = GetSpellInfo(21564)
+	
+	BUFFS.spirit = {
+		cost = 1,
+		name = "spirit",
+		displayName="Spirit",
+		icon = "Interface\\Icons\\Inv_misc_questionmark",
+		canBeCastBy = function(self, player)
+			return player.class == "Priest" and LibGroupTalents:UnitHasTalent(player.name, "Divine Spirit")
+		end,
+		isRequiredBy = function(self, player)
+			return UnitPowerMax(player.name, 0) > 0
+		end,
+		assignPrio = 100
+	}
+	_, _, BUFFS.spirit.icon, BUFFS.spirit.cost = GetSpellInfo(27681)
+	
+	BUFFS.gotw = {
+		cost = 1,
+		name = "gotw",
+		displayName="GOTW",
+		icon = "Interface\\Icons\\Inv_misc_questionmark",
+		canBeCastBy = function(self, player)
+			return player.class == "Druid"
+		end,
+		isRequiredBy = function(self, player)
+			return true
+		end, 
+		assignPrio = 0
+	}
+	_, _, BUFFS.gotw.icon, BUFFS.gotw.cost = GetSpellInfo(21850)
+	
+	BUFFS.intellect = {
+		cost = 1,
+		name = "intellect",
+		displayName="Intellect",
+		icon = "Interface\\Icons\\Inv_misc_questionmark",
+		canBeCastBy = function(self, player)
+			return player.class == "Mage"
+		end,
+		isRequiredBy = function(self, player)
+			return UnitPowerMax(player.name, 0) > 0
+		end, 
+		assignPrio = 0
+	}
+	_, _, BUFFS.intellect.icon, BUFFS.intellect.cost = GetSpellInfo(23028)
+end
