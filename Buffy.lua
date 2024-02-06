@@ -1,4 +1,4 @@
-Buffy = LibStub("AceAddon-3.0"):NewAddon("Buffy", "AceConsole-3.0")
+local Buffy = LibStub("AceAddon-3.0"):NewAddon("Buffy", "AceConsole-3.0")
 
 -----------------
 -- Addon state --
@@ -70,6 +70,7 @@ local BUFFS = {} -- a static list of the supports buffs
 -- Libraries --
 ---------------
 local LibGroupTalents = LibStub("LibGroupTalents-1.0")
+local AceGUI = LibStub("AceGUI-3.0")
 
 ----------------------
 -- Helper Functions --
@@ -438,24 +439,110 @@ function Buffy_OnCellClick(cell)
 	end
 end
 
+function Buffy_OnAssignClick(button)
+	Buffy.Assign()
+end
+
+function Buffy_OnAnnounceClick(button)
+	local classDropdownValue = {
+		druid = true,
+		mage = true,
+		priest = true
+	}
+	local targetDropdownValue = 'RAID'
+
+	local dialog = AceGUI:Create('Window')
+	dialog:SetTitle('Announce - Buffy')
+	dialog:SetCallback("OnClose", function(widget)
+		AceGUI:Release(widget) end)
+	dialog:SetLayout("List")
+	dialog:EnableResize(false)
+	dialog:SetWidth(225)
+	dialog:SetAutoAdjustHeight(true)
+	dialog:SetPoint("CENTER", UIParent, "CENTER", 0, 0)
+
+	local classDropdown = AceGUI:Create('Dropdown')
+	classDropdown:SetLabel('Announce assignments for classes')
+	classDropdown:SetMultiselect(true)
+	classDropdown:SetList({})
+	classDropdown:AddItem('druid', 'Druid')
+	classDropdown:AddItem('mage', 'Mage')
+	classDropdown:AddItem('priest', 'Priest')
+	classDropdown:SetItemValue('druid', classDropdownValue.druid)
+	classDropdown:SetItemValue('mage', classDropdownValue.mage)
+	classDropdown:SetItemValue('priest', classDropdownValue.priest)
+	classDropdown:SetCallback("OnValueChanged", function(frame, event, key, checked)
+		classDropdownValue[key] = checked
+	end)
+	dialog:AddChild(classDropdown)
+
+	local targetDropdown = AceGUI:Create('Dropdown')
+	targetDropdown:SetLabel('Announce target')
+	targetDropdown:SetList({})
+	targetDropdown:AddItem('WHISPER', 'Whisper')
+	targetDropdown:AddItem('PARTY', 'Party')
+	targetDropdown:AddItem('RAID', 'Raid')
+	targetDropdown:AddItem('GUILD', 'Guild')
+	targetDropdown:SetValue(targetDropdownValue)
+	-- OnValueChanged callback is defined a bit below
+	dialog:AddChild(targetDropdown)
+
+	local whisperTargetEditBox = AceGUI:Create('EditBox')
+	whisperTargetEditBox:SetLabel('Whisper Target')
+	whisperTargetEditBox:SetDisabled(true)
+	dialog:AddChild(whisperTargetEditBox)
+
+	-- need to be defined AFTER whisperTargetEditBox
+	targetDropdown:SetCallback("OnValueChanged", function(frame, event, value)
+		whisperTargetEditBox:SetDisabled(value ~= 'WHISPER')
+		targetDropdownValue = value
+	end)
+	
+
+	local okButton = AceGUI:Create('Button')
+	okButton:SetText('Announce')
+	okButton:SetCallback("OnClick", function()
+		dialog:Hide()
+		Buffy.Announce(targetDropdownValue, whisperTargetEditBox.editbox:GetText(), classDropdownValue)
+	end)
+	dialog:AddChild(okButton)
+
+	dialog.LayoutFinished = function(self, _, height)
+		dialog:SetHeight(height + 47)
+	end
+
+	dialog:Show()
+end
+
 --------------
 -- Commands --
 --------------
-function Buffy.Announce()
-	-- collect the buffers in a simple list
-	local buffers = {}
-	for buffType, buff in pairs(buffs) do
-		for k, buffer in pairs(buff.buffers) do
-			buffers[buffer.name] = buffer
+function Buffy.Announce(target, whisperTarget, classes)
+	local str = {}
+	for buffer in Buffy.buffersRepository:IterateByName() do
+		local groupsPerBuff = {}
+		for group in Buffy.groupsRepository:Iterator() do
+			for i, a in ipairs(buffer:GetAssignmentsForGroup(group)) do
+				print(a.player.class)
+				print(string.lower(a.player.class))
+				print(classes.druid)
+				if classes[string.lower(a.player.class)] then
+					if groupsPerBuff[a.buff] == nil then
+						groupsPerBuff[a.buff] = {}
+					end
+					table.insert(groupsPerBuff[a.buff], "g" .. group.nb)
+				end
+			end
+		end
+		local tmpStr = {}
+		for buff, groupNbs in pairs(groupsPerBuff) do
+			table.insert(tmpStr, buff.displayName .. " -> " .. table.concat(groupNbs, ", "))
+		end
+		if #tmpStr > 0 then
+			table.insert(str, buffer.name .. ": " .. table.concat(tmpStr, ", "))
 		end
 	end
-	
-	for _, p in pairs(buffers) do
-		print(p.class, p.name, p:CalculateAssignmentWeight())
-		for _, a in pairs(p.assignments) do
-			print('  ', a.buff.displayName, '--> g', a.groupNb)
-		end
-	end
+	SendChatMessage(table.concat(str, " // "), target, nil, whisperTarget)
 end
 
 function Buffy.InspectRaid()
@@ -528,16 +615,6 @@ function Buffy:OnSlashCommand(msg)
 	end
 	if cmd == "assign" then
 		Buffy.Assign()
-	elseif cmd == "announce" then
-		if #args == 2
-			and (args[1] == "priest" or args[1] == "mage" or args[1] == "druid")
-			and (args[2] == "s" or args[2] == "p" or args[2] == "r") then
-			Buffy.Announce(args[1], args[2])
-		else
-			Buffy:Print("Usage: /buffy announce <class> <target>")
-			Buffy:Print("              <class>      druid | mage | priest")
-			Buffy:Print("              <target>     s = say, p = party, r = raid")
-		end
 	else
 		Buffy:Print("Invalid command")
 	end
@@ -547,10 +624,10 @@ function Buffy:OnEnable()
 	BUFFS.stamina = {
 		cost = 1,
 		name = "stamina",
-		displayName="Stamina",
+		displayName="stam",
 		icon = "Interface\\Icons\\Inv_misc_questionmark",
 		canBeCastBy = function(self, player)
-			return player.class == "Priest"
+			return string.lower(player.class) == "priest"
 		end,
 		isRequiredBy = function(self, player)
 			return true
@@ -562,10 +639,10 @@ function Buffy:OnEnable()
 	BUFFS.spirit = {
 		cost = 1,
 		name = "spirit",
-		displayName="Spirit",
+		displayName="spi",
 		icon = "Interface\\Icons\\Inv_misc_questionmark",
 		canBeCastBy = function(self, player)
-			return player.class == "Priest" and LibGroupTalents:UnitHasTalent(player.name, "Divine Spirit")
+			return string.lower(player.class) == "priest" and LibGroupTalents:UnitHasTalent(player.name, "Divine Spirit")
 		end,
 		isRequiredBy = function(self, player)
 			return UnitPowerMax(player.name, 0) > 0
@@ -577,10 +654,10 @@ function Buffy:OnEnable()
 	BUFFS.gotw = {
 		cost = 1,
 		name = "gotw",
-		displayName="GOTW",
+		displayName="gotw",
 		icon = "Interface\\Icons\\Inv_misc_questionmark",
 		canBeCastBy = function(self, player)
-			return player.class == "Druid"
+			return string.lower(player.class) == "druid"
 		end,
 		isRequiredBy = function(self, player)
 			return true
@@ -592,10 +669,10 @@ function Buffy:OnEnable()
 	BUFFS.intellect = {
 		cost = 1,
 		name = "intellect",
-		displayName="Intellect",
+		displayName="int",
 		icon = "Interface\\Icons\\Inv_misc_questionmark",
 		canBeCastBy = function(self, player)
-			return player.class == "Mage"
+			return string.lower(player.class) == "mage"
 		end,
 		isRequiredBy = function(self, player)
 			return UnitPowerMax(player.name, 0) > 0
